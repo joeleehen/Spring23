@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HW3</title>
+</head>
+<body>
+    <div>
+        <form method="POST">
+            <table>
+                <tr><td><label> Name <input name="name" type="text" size="30"></label></td></tr>
+                <tr><td><label> Street Address <input name="address" type="text" size="30"></label></td></tr>
+                <tr><td><label> Email <input name="email" type="text" size="30"></label></td></tr>
+                <tr><td>What did you like most about campus?</td></tr>
+                <tr><td>
+                    <label> Students <input name="liked[]" type="checkbox" value="students"></label>
+                    <label> Location <input name="liked[]" type="checkbox" value="location"></label>
+                    <label> Campus <input name="liked[]" type="checkbox" value="campus"></label>
+                    <label> Courses Offered <input name="liked[]" type="checkbox" value="courses"></label>
+                    <label> Housing <input name="liked[]" type="checkbox" value="housing"></label>
+                    <label> Sports <input name="liked[]" type="checkbox" value="sports"></label>
+                </td></tr>
+                <tr><td> How did you become interest in UT? </td></tr>
+                <tr><td>
+                    <label> Family <input name="interest" type="radio" value="family"></label>
+                    <label> Friends <input name="interest" type="radio" value="friends"></label>
+                    <label> Internet <input name="interest" type="radio" value="internet"></label>
+                    <label> Other <input name="interest" type="radio" value="other"></label>
+                </td></tr>
+                <tr><td>
+                    <label> Departments Visited
+                        <select name="visit">
+                            <option value="cola">College of Liberal Arts</option>
+                            <option value="business">Mccomb's School of Business</option>
+                            <option value="engineering">Cockrell School of Engineering</option>
+                            <option value="communications">Moody College of Communications</option>
+                        </select>
+                    </label>
+                </td></tr>
+                <tr><td>
+                    <label> Additional Comments: <br>
+                        <textarea name="comments" rows="4" cols="36"> Enter comments here </textarea>
+                    </label>
+                </td></tr>
+                <tr><td>
+                    <input type="submit" value="Enter">
+                    <input type="reset" value="Clear">
+                </td></tr>
+            </table>
+        </form>
+    </div>
+</body>
+</html>
