@@ -1,0 +1,45 @@
+body {
+    background-color: rgb(188, 192, 197);
+    font-family: "Lucida Console", serif;
+    color:rgb(187, 104, 9)
+}
+
+input[type=text] {
+    background-color: rgb(188, 156, 250);
+    color: white;
+    width: 80%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    font-family: "Lucida Console", serif;
+    font-size: x-large;
+}
+
+.outputs {
+    text-align: center;
+    padding-bottom: 10px;
+}
+
+.outputs:hover {
+    text-decoration: underline rgb(187, 104, 9);
+}
+
+.btn:hover {
+    box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
+}
+
+.calcBttn {
+    background-color: #04AA6D;
+    color: white;
+    padding: 15px 32px;
+    margin: 5px;
+    border: none;
+    font-family: "Lucida Console", serif;
+}
+
+.resetBttn {
+    background-color: cornflowerblue;
+    color: white;
+    padding: 15px 32px;
+    border: none;
+    font-family: "Lucida Console", serif;
+}
