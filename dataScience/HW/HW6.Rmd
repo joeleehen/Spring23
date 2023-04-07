@@ -1,0 +1,227 @@
+---
+title: "HW 6"
+output: html_document
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE,  
+                      warning = FALSE, message = FALSE, 
+                      fig.align = "center",
+                      R.options = list(max.print=100))
+
+# Edit the file starting below
+```
+
+### Enter your name and EID here: Joseph Hendrix | jlh7459
+
+**You will submit this homework assignment as a pdf file on Gradescope.**
+
+*For all questions, include the R commands/functions that you used to find your answer (show R chunk). Answers without supporting code will not receive credit. Write full sentences to describe your findings.*
+
+We will use the packages `tidyverse` and  `plotROC` for this assignment.
+
+```{r, message = FALSE}
+# Load packages
+library(tidyverse)
+library(plotROC)
+```
+
+------------------------------------------------------------------------
+
+## Question 1: (4 pts)
+
+We will use the `pokemon` dataset for this assignment:
+
+```{r}
+# Upload data from GitHub
+pokemon <- read_csv("https://raw.githubusercontent.com/laylaguyot/datasets/main//pokemon.csv")
+
+# Take a look 
+head(pokemon)
+```
+
+Recode the variable `Legendary`, taking a value of 1 if a pokemon is legendary and a value of 0 if it is not. Save the resulting data as `my_pokemon`.
+
+```{r}
+# recode Legendary variable
+my_pokemon = pokemon %>%
+  mutate(Legendary = ifelse(Legendary == TRUE, 1, 0))
+
+my_pokemon
+ 
+```
+
+Let's visualize how the features of `Attack` and `HP` impact the legendary status. First, visualize the distribution of `Attack` for legendary pokemons vs those that are not. Also visualize the distribution of `HP` for these two groups. *Note: consider the binary variable as a factor for your `ggplot` using `as.factor()`.* Comment with what you see in these visualizations.
+
+```{r}
+# recode legendary as factor and plot against attack
+my_pokemon %>%
+  mutate(fac = as.factor(Legendary)) %>%
+  select(Attack, fac) %>%
+  ggplot(aes(x = Attack, y = fac)) +
+  geom_boxplot() +
+  labs(title = "Attack Stats for Legendaries and Non-Legendaries", y = "Legendary Status")
+
+# recode legendary as factor and plot against HP
+my_pokemon %>%
+  mutate(fac = as.factor(Legendary)) %>%
+  select(HP, fac) %>%
+  ggplot(aes(x = HP, y = fac)) +
+  geom_boxplot() +
+  labs(title = "HP Stats for Legendaries and Non-Legendaries", y = "Legendary Status")
+```
+
+**Legendary pokemon tend to have higher average Attack and HP stats; non-legendaries have a larger variance for both variables.**
+
+Then visualize the linear relationship between `Attack` and `HP` (hit points) for each legendary status. *Hint: color the regression lines.* Do `Attack` and `HP` seem to predict Legendary status? Comment with what you see in this visualization.
+
+```{r}
+# plot linear relationship between attack and hp, legendaries
+my_pokemon %>%
+  filter(Legendary ==  1) %>%
+  select(Attack, HP) %>%
+  ggplot(aes(Attack, HP)) +
+  geom_point() +
+  geom_smooth(method = 'lm', se = FALSE, color = 'red') +
+  labs(title = "HP vs Attack for Legendary Pokemon")
+
+# plot same for non-legendaries
+my_pokemon %>%
+  filter(Legendary ==  0) %>%
+  select(Attack, HP) %>%
+  ggplot(aes(Attack, HP)) +
+  geom_point() +
+  geom_smooth(method = 'lm', se = FALSE, color = 'blue') +
+  labs(title = "HP vs Attack for Non-Legendary Pokemon")
+
+ 
+```
+
+**There seems to be a linear relationship between HP and Attack.**
+
+------------------------------------------------------------------------
+
+## Question 2: (2 pt)
+
+Let's predict `Legendary` status using a linear regression model with `Attack` and `HP` in `my_pokemon`. Fit this model, call it `pokemon_lin`, and write its equation.
+
+```{r}
+# fit linear model to attack and hp to predict if a pokemon is a legendary
+pokemon_lin = lm(Legendary ~ Attack + HP, data = my_pokemon)
+summary(pokemon_lin)
+```
+
+**Legendary = -0.22 + 0.003Attack + 0.002HP**
+
+------------------------------------------------------------------------
+
+## Question 3: (3 pts)
+
+Choose a pokemon whose name starts with the same letter as yours. Take a look at its stats and, using the equation of your model from the previous question, predict the legendary status of this pokemon, "by hand":
+
+```{r}
+# select a pokemon that starts with 'j', prolly jolteon he was my favorite eeveelution as a kid
+# nvm joltik is cooler bs it evolves into galvantula
+my_pokemon %>%
+  filter(str_detect(Name, "^J"))
+
+# predict by hand
+joltik = my_pokemon %>%
+  filter(Name == "Joltik")
+
+-0.22 + (joltik$Attack * 0.003) + (joltik$HP * 0.002)
+# Legendary = 0.021 = not a legendary
+```
+
+Check your answer by using `predict()` with the argument `newdata =`:
+
+```{r}
+# predict joltik's legendary status using predict()
+my_pokemon %>%
+  mutate(predictions = predict(pokemon_lin)) %>%
+  filter(Name == "Joltik")
+```
+
+Was your pokemon predicted to be legendary? Why or why not? Does it match the reality?
+
+**Since the predicted value is less than one, Joltik is predicted to be a non-legendary pokemon. This is true!**
+
+------------------------------------------------------------------------
+
+## Question 4: (2 pts)
+
+We can measure how far off our predictions are from reality with residuals. Use `resid()` to find the residuals of each pokemon in the dataset then find the sum of all residuals. Why does it make sense? 
+
+```{r}
+# calculate residuals
+my_pokemon %>%
+  mutate(predictions = predict(pokemon_lin)) %>%
+  mutate(residuals = resid(pokemon_lin)) %>%
+  summarize(sum(residuals))
+```
+
+**The sum of residuals is pretty small since we expect the positive residuals to cancel out the negative ones**
+
+------------------------------------------------------------------------
+
+## Question 5: (2 pts)
+
+A logistic regression would be more appropriate to predict `Legendary` status since it can only take two values. Fit this new model with `Attack` and `HP`, call it `pokemon_log`, and write its equation. *Hint: the logit form is given by the R output.*
+
+```{r}
+#fit logistic model to data
+pokemon_log = glm(Legendary ~ Attack + HP, data = my_pokemon)
+pokemon_log
+```
+
+**Equation: -0.220 + (0.002)Attack + (0.002)HP**
+
+------------------------------------------------------------------------
+
+## Question 6: (2 pts)
+
+According to this new model, is the pokemon you chose in question 3 predicted to be legendary? Why or why not? *Hint: you can use predict() with the arguments `newdata =` and `type = "response"`.*
+
+```{r}
+# predict if joltik is a legendary using logistic regression
+my_pokemon %>%
+  mutate(predictions = predict(pokemon_log)) %>%
+  filter(Name == "Joltik")
+```
+
+**Again, since Joltik has a value less than 1 he's predicted to be a non-legendary**
+
+------------------------------------------------------------------------
+
+## Question 7: (3 pts)
+
+Let's compare the performance of these two models using ROC curves. On the same plot, represent the ROC curve for predicting `Legendary` status based on the predictions from the linear regressionin blue and another ROC curve based on the predictions from the logistic regression in orange.
+
+```{r}
+# plot ROC curves
+ROC = my_pokemon %>%
+  mutate(pLin = predict(pokemon_lin)) %>%
+  mutate(pLog = predict(pokemon_log)) %>%
+  ggplot() +
+  geom_roc(aes(d = Legendary, m = pLin, color = 'blue')) +    # linear
+  geom_roc(aes(d = Legendary, m = pLog, color = "orange"))    # logistic
+
+ROC
+```
+
+How do these two models compare?
+
+**It seems both models produce the same ROC curve!**
+
+------------------------------------------------------------------------
+
+## Formatting: (2 pts)
+
+Comment your code, write full sentences, and knit your file!
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+## DO NOT DELETE THIS BLOCK!
+Sys.info()
+```

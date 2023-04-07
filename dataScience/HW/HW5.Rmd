@@ -1,0 +1,307 @@
+---
+title: "HW 5"
+output: html_document
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE,  
+                      warning = FALSE, message = FALSE, 
+                      fig.align = "center",
+                      R.options = list(max.print=100))
+
+# Edit the file starting below
+```
+
+### Enter your name and EID here: Joseph Hendrix \| jlh7459
+
+**You will submit this homework assignment as a pdf file on Gradescope.**
+
+*For all questions, include the R commands/functions that you used to find your answer (show R chunk). Answers without supporting code will not receive credit. Write full sentences to describe your findings.*
+
+------------------------------------------------------------------------
+
+### Question 1: (1 pt)
+
+The dataset `world_bank_pop` is a built-in dataset in `tidyverse`. It contains information about total population and population growth, overall and more specifically in urban areas, for countries around the world. Take a look at it with `head()`. Is the data tidy? Why or why not?
+
+```{r message=FALSE}
+# Call tidyr, dplyr and ggplot2 packages within tidyverse
+library(tidyverse)
+
+# Take a look!
+head(world_bank_pop)
+```
+
+**The data is tidy; every variable has its own column, every observation has its own row, and every value has its own cell.**
+
+------------------------------------------------------------------------
+
+### Question 2: (1 pt)
+
+Using `dplyr` functions on `world_bank_pop`, count how many distinct countries there are in the dataset. Does this makes sense? Why or why not?
+
+```{r}
+# pull distinct countries from dataset
+world_bank_pop %>%
+  summarize(n_distinct(country))
+
+```
+
+**There are 264 distinct countries in the dataset. This doesn't make sense as there are only 189 members of the World Bank.**
+
+------------------------------------------------------------------------
+
+### Question 3: (2 pts)
+
+Use one of the `pivot` functions on `world_bank_pop` to create a new dataset with the years 2000 to 2017 appearing as a *numeric* variable `year`, and the different values for the indicator variable are in a variable called `value`. Save this new dataset in your environment as `myworld1`.
+
+```{r}
+# pivot dataset to elongate year variable
+myworld1 <- pivot_longer(world_bank_pop,
+                         cols = c(3:20),
+                         names_to = "year",
+                         values_to = "value")
+
+
+myworld1
+```
+
+How many lines are there per country? Why does it make sense?
+
+```{r}
+myworld1 %>%
+  filter(country == "ABW") %>%
+  summarize(n())
+```
+
+**There are 72 rows for each country. This makes sense! There's 18 total years and 4 indicators for each year, for a total of 72.**
+
+------------------------------------------------------------------------
+
+### Question 4: (3 pts)
+
+Use another `pivot` function on `myworld1` to create a new dataset, `myworld2`, with the different categories for the indicator variable appearing as their own variables. Use `dplyr` functions to rename `SP.POP.GROW` and `SP.URB.GROW`, as `pop_growth` and `pop_urb_growth` respectively.
+
+```{r}
+# define codes for observation refactoring
+codes = list("SP.URB.TOTL" = "pop_urb_total", "SP.URB.GROW" = "pop_urb_grow", "SP.POP.TOTL" = "pop_total", "SP.POP.GROW" = "pop_growth")
+
+myworld2 <- myworld1 %>%
+  mutate(indicator = recode(indicator, !!!codes)) %>%    # refactor indicators
+  pivot_wider(
+    names_from = indicator,
+    values_from = value
+  )
+
+myworld2
+```
+
+Using `dplyr` functions, find the ratio of urban growth compared to the population growth in the world for each year. *Hint: the country code `WLD` represents the entire world.* Create a `ggplot` to display how the percentage of urban population growth has changed over the years. Why does your graph not contradict the fact that the urban population worldwide is increasing over the years?
+
+```{r}
+myworld2 %>%
+  filter(country == "WLD") %>%
+  mutate(ratio = pop_urb_grow / pop_growth) %>%    # calculate growth ratio
+  ggplot(aes(x = year, y = ratio)) + 
+  geom_col()
+
+myworld2 %>%
+  filter(country == "WLD") %>%
+  mutate(ratio = pop_urb_grow / pop_growth)
+```
+
+**The data shows a pretty consistent ratio of urban growth to population growth. This is consistent with an increase in global urban population over the years.**
+
+------------------------------------------------------------------------
+
+### Question 5: (1 pt)
+
+In `myworld2`, which country code had the highest population growth in 2017?
+
+```{r}
+# sort myworld2 by population growth from 2017
+myworld2 %>%
+  filter(year == 2017) %>%
+  group_by(country) %>%
+  arrange(desc(pop_growth))
+```
+
+**Oman (OMN) has the highest population growth in 2017 at 4.669.**
+
+------------------------------------------------------------------------
+
+### Question 6: (1 pt)
+
+When answering the previous, we only reported the three-letter code and (probably) have no idea what the actual country is. We will now use the package `countrycode` with a built-in dataset called `codelist` that has information about the coding system used by the World bank:
+
+```{r}
+# Paste and run the following into your console (NOT HERE): install.packages("countrycode")
+
+# Call the countrycode package
+library(countrycode)
+
+# Create a list of codes with matching country names
+mycodes <- codelist # continue this code...
+
+```
+
+Using `dplyr` functions, modify `mycodes` above to only keep the variables `continent`, `wb` (World Bank code), and `country.name.en` (country name in English). Then remove countries with missing `wb` code.
+
+How many countries are there in `mycodes`?
+
+```{r}
+# refactor mycodes to cull irrelevant info
+mycodes = mycodes %>%
+  select(continent, wb, country.name.en) %>%
+  filter(wb != "")
+
+mycodes
+```
+
+**There are 218 countries in mycodes.**
+
+------------------------------------------------------------------------
+
+### Question 7: (1 pt)
+
+Use a `left_join()` function to add the information of the country codes **to** `myworld2` dataset. Match the two datasets based on the World Bank code. *Note: the World Bank code does not have the same name in each dataset.* Using `dplyr` functions, only keep the data available for Europe and for the year 2017. Save this new dataset as `myeurope`.
+
+```{r}
+# join both datasets
+myeurope = myworld2 %>%
+  filter(year == 2017) %>%    # only from 2017
+  left_join((mycodes %>%
+               filter(continent == "Europe") %>%    # only from Europe
+               select(wb, country.name.en)), by = c("country" = "wb")) %>%    # join on country name
+  filter(country.name.en != "") %>%    # get rid of missing non-Europe values
+  select(country.name.en, country, everything())    # reorder dataset
+
+myeurope
+```
+
+How many rows are there in `this new dataset`myeurope\`? What does each row represent?
+
+```{r}
+# pull row count from myeurope
+myeurope %>%
+  summarize(n())
+```
+
+**There are 46 rows in myeurope, each row representing a country.**
+
+------------------------------------------------------------------------
+
+### Question 8: (2 pts)
+
+Using `dplyr` functions on `myeurope`, only keep information for the population growth in 2017 then compare the population growth per country with `ggplot` using `geom_bar()`. Make sure to order countries in order of population growth. Which country in Europe had the lowest population growth in 2017?
+
+```{r}
+# build population growth bar graph
+myeurope %>%
+  select(country.name.en, pop_growth) %>%
+  arrange(pop_growth) %>%
+  ggplot(aes(x = reorder(country.name.en, pop_growth), y = pop_growth)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+```
+
+**Lithuania has the lowest population growth.**
+
+------------------------------------------------------------------------
+
+### Question 9: (1 pt)
+
+When dealing with location data, we can actually visualize information on a map if we have geographic information such as latitude and longitude. Next, we will use a built-in function called `map_data()` to get geographic coordinates about countries in the world (see below). Take a look at the dataset `mapWorld`. What variables could we use to join `mapWorld` and `myeurope`? *Note: the variables do not have the same name in each dataset but they contain the same information.*
+
+```{r}
+# Geographic coordinates about countries in the world
+mapWorld <- map_data("world")
+
+mapWorld
+myeurope
+```
+
+**We could use region from mapWorld to join on country.name.en in myeurope.**
+
+------------------------------------------------------------------------
+
+### Question 10: (2 pts)
+
+Use a joining function to check if any information from `myeurope` is not contained in `mapWorld`, matching the two datasets based on the country name.
+
+```{r}
+# check where both datasets don't match
+myeurope %>%
+  anti_join(mapWorld, by = c("country.name.en" = "region"))
+```
+
+Some countries such as United Kingdom did not have a match. Why do you think this happened? *Hint: find the distinct country names in `mapWorld`, arrange them in alphabetical order, and scroll through the names. Can you find any of these countries with no match in a slightly different form?*
+
+```{r}
+# sort mapWorld by aplhabetical region
+mapWorld %>%
+  group_by(region) %>%
+  summarize(mean(group))
+```
+
+**It looks like the data from myeurope is older than mapWorld. Czechia in myeurope is now called Czech Republic, which is how it shows up in mapWorld. There's also small syntactic differences, like an ampersand instead of the word 'and'.**
+
+------------------------------------------------------------------------
+
+### Question 11: (1 pt)
+
+Consider the `myeurope` dataset. Recode some of the country names so that the countries with no match from the previous question (with the exception of Gibraltar which is not technically a country anyway) will have a match. *Hint: use `recode()` inside `mutate()` as described in this article <https://www.statology.org/recode-dplyr/>.* Then add a pipe and use a `left_join()` function to add the geographic information in `mapWorld` to the countries in `myeurope`. Save this new dataset as `mymap`.
+
+```{r}
+mymap = myeurope %>%
+  # recode missing variables
+  mutate(country.name.en=recode(country.name.en, "Bosnia & Herzegovina"="Boznia and Herzegovina", "Czechia"="Czech Republic", "United Kingdom"="UK")) %>%
+  # combine datasets
+  left_join(mapWorld, by = c("country.name.en" = "region"))
+
+mymap %>% arrange(desc(pop_growth))
+```
+
+------------------------------------------------------------------------
+
+### Question 12: (2 pts)
+
+Let's visualize how population growth varies across European countries in 2017 with a map. With the package `ggmap`, use the R code provided below. Add a comment after each `#` to explain what each component of this code does. *Note: it would be a good idea to run the code piece by piece to see what each layer adds to the plot.*
+
+```{r}
+# Paste and run the following into your console (NOT HERE): install.packages("ggmap")
+
+# Call the ggmap package
+library(ggmap)
+
+# Build a map!
+mymap %>%
+  # assign data from mymap to ggplot
+  ggplot(aes(x = long, y = lat, group = group, fill = pop_growth)) + 
+  # draw countries
+  geom_polygon(colour = "black") +
+  # assign fill color based on population growth
+  scale_fill_gradient(low = "white", high = "blue") +
+  # add title and axes labels
+  labs(fill = "Growth" ,title = "Population Growth in 2000", 
+       x ="Longitude", y ="Latitude") +
+  # limit spn of graph to make it look prettier
+  xlim(-25,50) + ylim(35,70)
+```
+
+Which country had the highest population growth in Europe in 2017? *Hint: it's very tiny and very close to where I'm from! You can refer to this map for European geography: <https://www.wpmap.org/europe-map-hd-with-countries/>*
+
+**Luxembourg had the highest European population growth in 2017!**
+
+------------------------------------------------------------------------
+
+### Formatting: (2 pts)
+
+Comment your code, write full sentences, and knit your file!
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+## DO NOT DELETE THIS BLOCK!
+Sys.info()
+```
